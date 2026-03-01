@@ -49,14 +49,13 @@ Input your "Target Focus Time" and "Hard Sleep Deadline." The algorithm back-cal
 
 ---
 
-🧬 How the "Bio-Logic" Works
+## 🧬 How the "Bio-Logic" Works
 
-Your protocol isn't just a generic timer. It calculates a Custom Half-Life (t1/2):
-- Baseline: 5.0 hours.
-- Fast Metabolizer: −1.2 hours.
-- Medication/Slow: +1.5 hours.
-- Empty Stomach: Shifts peak offset from 45 mins to 25 mins.
-
+Your protocol isn't just a generic timer. It calculates a **Custom Half-Life ($t_{1/2}$)**:
+* **Baseline:** 5.0 hours.
+* **Fast Metabolizer:** −1.2 hours.
+* **Medication/Slow:** +1.5 hours.
+* **Empty Stomach:** **Shifts** peak offset from 45 mins to 25 mins.
 ---
 
 ## 🧪 Use Cases
