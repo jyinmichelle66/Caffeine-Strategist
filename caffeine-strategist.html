@@ -1,0 +1,2242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAFFEINE STRATEGIST — Monster Energy Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+  :root {
+    --green: #00FF41;
+    --green-dim: #00cc33;
+    --green-glow: rgba(0,255,65,0.15);
+    --red: #FF2D55;
+    --red-glow: rgba(255,45,85,0.15);
+    --yellow: #FFD60A;
+    --bg: #000000;
+    --bg2: #070d07;
+    --bg3: #0a1a0a;
+    --text: #c8f5d0;
+    --text-dim: #4a7a50;
+    --border: rgba(0,255,65,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* Grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,65,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,65,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .monster-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--green-glow);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 4px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--green-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .monster-badge::before {
+    content: '▶';
+    font-size: 8px;
+    color: var(--green);
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 10vw, 96px);
+    line-height: 0.9;
+    letter-spacing: 0.04em;
+    background: linear-gradient(180deg, #ffffff 0%, var(--green) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 30px rgba(0,255,65,0.4));
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+
+  /* ── MODE TOGGLE ── */
+  .mode-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px;
+    background: var(--bg2);
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .mode-btn:hover { color: var(--text); }
+  .mode-btn.active {
+    background: var(--green-glow);
+    color: var(--green);
+    border: 1px solid var(--border);
+  }
+
+  /* ── REVERSE PANEL ── */
+  .panel-reverse {
+    display: none;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px;
+    margin-bottom: 32px;
+  }
+  .panel-reverse.visible { display: block; }
+  #panel-simulate.hidden { display: none !important; }
+  .reverse-result {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--bg3);
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .reverse-result .label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--green-dim); letter-spacing: 0.15em; margin-bottom: 8px; }
+  .reverse-result strong { color: var(--green); }
+
+  /* ── INPUT PANEL ── */
+  .input-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .input-panel.id-reverse { margin-bottom: 0; }
+
+  .input-panel::before {
+    content: 'INTAKE_PARAMETERS';
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+  }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+  .input-row-three {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  @media (max-width: 600px) {
+    .input-row { grid-template-columns: 1fr; }
+    .input-row-three { grid-template-columns: 1fr; }
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  label {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+
+  label span {
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 400;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.08em;
+  }
+
+  input[type="date"],
+  input[type="time"],
+  input[type="number"],
+  select {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    padding: 12px 16px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input[type="date"]:focus,
+  input[type="time"]:focus,
+  input[type="number"]:focus,
+  select:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px var(--green-glow), inset 0 0 20px var(--green-glow);
+  }
+
+  input[type="number"]::placeholder { color: var(--text-dim); font-size: 16px; }
+
+  select { cursor: pointer; font-size: 16px; }
+  select option { background: #0a1a0a; }
+
+  /* Quantity row */
+  .quantity-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .quantity-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .can-counter {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .can-btn {
+    background: var(--green-glow);
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-size: 20px;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .can-btn:hover { background: rgba(0,255,65,0.25); }
+  .can-count {
+    background: black;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 22px;
+    width: 56px;
+    height: 44px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .monster-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--green-glow);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 6px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+  }
+
+  .monster-claw {
+    font-size: 18px;
+    filter: drop-shadow(0 0 6px var(--green));
+  }
+
+  /* CTA Button */
+  .cta-btn {
+    width: 100%;
+    padding: 18px;
+    background: transparent;
+    border: 2px solid var(--green);
+    color: var(--green);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+    text-shadow: 0 0 20px var(--green);
+    box-shadow: 0 0 20px var(--green-glow), inset 0 0 20px var(--green-glow);
+  }
+
+  .cta-btn:hover {
+    background: var(--green);
+    color: black;
+    box-shadow: 0 0 40px rgba(0,255,65,0.5), inset 0 0 40px rgba(0,255,65,0.1);
+    text-shadow: none;
+  }
+
+  .cta-btn:active { transform: scale(0.99); }
+
+  .cta-btn::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -75%;
+    width: 50%;
+    height: 200%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: skewX(-25deg);
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -75%; }
+    100% { left: 150%; }
+  }
+
+  /* ── OUTPUT PANEL ── */
+  #output {
+    display: none;
+    animation: fadeIn 0.5s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chart-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .chart-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .chart-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .live-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+  }
+
+  .live-dot::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  #chart { width: 100%; height: 380px; }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  /* ── VERDICT PANEL ── */
+  .verdict-panel {
+    background: var(--bg3);
+    border: 1px solid var(--green);
+    border-radius: 4px;
+    padding: 28px 32px;
+    position: relative;
+    box-shadow: 0 0 30px var(--green-glow);
+  }
+
+  .verdict-panel::before {
+    content: '⚡ STRATEGIC VERDICT';
+    position: absolute;
+    top: -1px;
+    left: 24px;
+    transform: translateY(-50%);
+    background: var(--bg3);
+    padding: 0 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 0.2em;
+    border: 1px solid var(--green);
+    border-radius: 2px;
+  }
+
+  #verdict-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .verdict-peak {
+    color: var(--green);
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--green);
+  }
+
+  .verdict-warning {
+    color: var(--red);
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--red);
+  }
+
+  .verdict-safe {
+    color: var(--yellow);
+    font-weight: bold;
+  }
+
+  .topup-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .topup-panel:empty { display: none; }
+  .topup-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--green-dim);
+    letter-spacing: 0.2em;
+    margin-bottom: 12px;
+  }
+  .topup-list {
+    list-style: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .topup-list li { margin-bottom: 6px; }
+  .topup-time {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--green);
+    margin-right: 10px;
+  }
+
+  /* Reminders panel — toughest / sleepiest moments */
+  .reminders-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .reminders-panel::before {
+    content: 'BODY CHECK & REMINDERS';
+    position: absolute;
+    top: -1px;
+    left: 24px;
+    transform: translateY(-50%);
+    background: var(--bg2);
+    padding: 0 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--yellow);
+    letter-spacing: 0.15em;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+  .reminder-block {
+    margin-bottom: 18px;
+  }
+  .reminder-block:last-child { margin-bottom: 0; }
+  .reminder-time {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--green);
+    margin-bottom: 4px;
+  }
+  .reminder-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .reminder-tips {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .reminder-tips .tip { color: var(--green-dim); }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 600px) {
+    .stats-row { grid-template-columns: 1fr; }
+  }
+
+  .stat-card {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* Loading state */
+  .loading {
+    display: inline-block;
+    animation: dots 1s infinite;
+  }
+
+  @keyframes dots {
+    0%,100% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+  }
+
+  /* ── TOP NAV: Personal Settings, How to use, Watch (parallel) ── */
+  .top-nav {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .top-nav-btn {
+    background: var(--green-glow);
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .top-nav-btn:hover {
+    background: rgba(0,255,65,0.25);
+    box-shadow: 0 0 15px var(--green-glow);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s, visibility 0.25s;
+  }
+  .sidebar-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 380px;
+    height: 100vh;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    z-index: 201;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .sidebar-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  .sidebar-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: var(--green);
+    box-shadow: 0 0 20px var(--green-glow);
+    flex-shrink: 0;
+  }
+  .sidebar-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.05em;
+    color: var(--green);
+  }
+  .sidebar-close {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .sidebar-close:hover {
+    color: var(--green);
+    border-color: var(--green);
+  }
+
+  .sidebar-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section:last-child { border-bottom: none; }
+  .sidebar-section-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .sidebar-bio { font-family: 'Inter', sans-serif; }
+  .bio-row { margin-bottom: 12px; }
+  .bio-row:last-child { margin-bottom: 0; }
+  .bio-label {
+    display: block;
+    font-size: 11px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .sidebar-bio select,
+  .sidebar-bio input[type="number"] {
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--green);
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  .empty-stomach-row { margin-bottom: 20px; }
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .toggle-label input[type="checkbox"] { accent-color: var(--green); cursor: pointer; }
+  .history-list {
+    list-style: none;
+  }
+  .history-item {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .history-item:last-child { margin-bottom: 0; }
+  .history-item .hi-date { color: var(--text-dim); font-size: 10px; }
+  .history-item .hi-mg { color: var(--green); font-weight: 600; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .sidebar-stat {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 12px;
+    text-align: center;
+  }
+  .sidebar-stat .val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--green);
+    line-height: 1;
+  }
+  .sidebar-stat .lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  .advice-panel {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .advice-panel .safe { color: var(--green); }
+  .advice-panel .warn { color: var(--yellow); }
+  .advice-panel .danger { color: var(--red); }
+  .advice-panel .threshold-title {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-top: 12px;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-how-to {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .sidebar-how-to p { margin-bottom: 10px; }
+  .sidebar-how-to p:last-child { margin-bottom: 0; }
+  .sidebar-how-to strong { color: var(--green-dim); }
+
+  .sidebar-watch-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 12px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: default;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .sidebar-watch-link:hover { border-color: var(--green); color: var(--text); }
+  .sidebar-watch-link .watch-icon { font-size: 18px; }
+  .sidebar-watch-link .coming-soon {
+    margin-left: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--yellow);
+    letter-spacing: 0.1em;
+  }
+
+  /* Modals for How to use & Watch (same pattern as sidebar) */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s, visibility 0.25s;
+  }
+  .modal-overlay.open { opacity: 1; visibility: visible; }
+  .modal-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 420px;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    z-index: 201;
+    padding: 24px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  }
+  .modal-panel .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 18px;
+    border-radius: 2px;
+  }
+  .modal-panel .modal-close:hover { color: var(--green); border-color: var(--green); }
+  .modal-panel .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--green);
+    margin-bottom: 16px;
+    padding-right: 40px;
+  }
+  .modal-panel .modal-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .modal-panel .modal-body p { margin-bottom: 12px; }
+  .modal-panel .modal-body strong { color: var(--green-dim); }
+  .modal-panel-records { max-width: 480px; }
+  .modal-panel-records .records-stats { margin-bottom: 20px; }
+  .modal-panel-records .records-list-section { margin-bottom: 20px; max-height: 280px; overflow-y: auto; }
+  .modal-panel-records .records-chart-actions { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .modal-panel-records .records-btn { font-size: 14px; padding: 12px; }
+
+  /* Footer QR */
+  .footer-qr {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+  .qr-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 10px;
+  }
+  .footer-qr img {
+    display: block;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #fff;
+    padding: 6px;
+  }
+  .qr-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    max-width: 260px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="top-nav">
+  <button type="button" class="top-nav-btn" onclick="openSidebar()" aria-label="Personal Settings">▶ PERSONAL SETTINGS</button>
+  <button type="button" class="top-nav-btn" onclick="openRecords()" aria-label="Records">RECORDS</button>
+  <button type="button" class="top-nav-btn" onclick="openHowTo()" aria-label="How to use">HOW TO USE</button>
+  <button type="button" class="top-nav-btn" onclick="openWatch()" aria-label="Watch">⌚ WATCH</button>
+</div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-header-top">
+      <span></span>
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close">×</button>
+    </div>
+    <div class="sidebar-avatar" aria-hidden="true">U</div>
+    <span class="sidebar-title">Personal Settings</span>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">// BIOLOGICAL / METABOLISM //</div>
+    <div class="sidebar-bio">
+      <div class="bio-row">
+        <label class="bio-label">CYP1A2 (genes)</label>
+        <select id="bio-genes" onchange="saveBiologicalSettings()">
+          <option value="fast">Fast metabolizer</option>
+          <option value="normal" selected>Normal</option>
+          <option value="slow">Slow metabolizer</option>
+        </select>
+      </div>
+      <div class="bio-row">
+        <label class="bio-label">Tobacco use</label>
+        <select id="bio-tobacco" onchange="saveBiologicalSettings()">
+          <option value="no" selected>No</option>
+          <option value="yes">Yes (speeds metabolism)</option>
+        </select>
+      </div>
+      <div class="bio-row">
+        <label class="bio-label">Medication</label>
+        <select id="bio-medication" onchange="saveBiologicalSettings()">
+          <option value="no" selected>No</option>
+          <option value="yes">Yes (e.g. birth control, slows metabolism)</option>
+        </select>
+      </div>
+      <div class="bio-row">
+        <label class="bio-label">Daily habitual intake (mg)</label>
+        <input type="number" id="bio-habitual" min="0" max="800" step="50" value="0" onchange="saveBiologicalSettings()" placeholder="0">
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">// HEALTH ADVICE & THRESHOLDS //</div>
+    <div class="advice-panel" id="advice-panel"></div>
+  </div>
+</aside>
+
+<div class="modal-overlay" id="overlay-howto" onclick="closeHowTo()"></div>
+<div class="modal-panel" id="panel-howto" style="display: none;">
+  <button type="button" class="modal-close" onclick="closeHowTo()" aria-label="Close">×</button>
+  <div class="modal-title">How to use</div>
+  <div class="modal-body">
+    <p><strong>Simulate:</strong> Pick date, time, drink and quantity, then hit Generate Strategy to see your caffeine curve and sleep window.</p>
+    <p><strong>Reverse Strategy:</strong> Enter when you need to be focused and when you need to be asleep; tap Calculate to get recommended intake time and drink options.</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="overlay-watch" onclick="closeWatch()"></div>
+<div class="modal-panel" id="panel-watch" style="display: none;">
+  <button type="button" class="modal-close" onclick="closeWatch()" aria-label="Close">×</button>
+  <div class="modal-title">⌚ Apple Watch & wearables</div>
+  <div class="modal-body">
+    <p>Sync body data (heart rate, sleep, activity) from Apple Watch or other wearables for smarter caffeine planning.</p>
+    <p style="color: var(--yellow); font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 0.1em;">Coming soon</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="overlay-records" onclick="closeRecords()"></div>
+<div class="modal-panel modal-panel-records" id="panel-records" style="display: none;">
+  <button type="button" class="modal-close" onclick="closeRecords()" aria-label="Close">×</button>
+  <div class="modal-title">Records</div>
+  <div class="records-stats">
+    <div class="sidebar-section-title">// WEEK / MONTH / YEAR //</div>
+    <div class="stats-grid">
+      <div class="sidebar-stat">
+        <div class="val" id="records-stat-week">0</div>
+        <div class="lbl">This week (mg)</div>
+      </div>
+      <div class="sidebar-stat">
+        <div class="val" id="records-stat-month">0</div>
+        <div class="lbl">This month (mg)</div>
+      </div>
+      <div class="sidebar-stat">
+        <div class="val" id="records-stat-year">0</div>
+        <div class="lbl">This year (mg)</div>
+      </div>
+    </div>
+  </div>
+  <div class="records-list-section">
+    <div class="sidebar-section-title">// RECORDS //</div>
+    <ul class="history-list" id="records-list"></ul>
+    <p id="records-empty" class="history-empty" style="font-family:Share Tech Mono;font-size:11px;color:var(--text-dim);display:none;">No records yet. Generate a strategy to log here.</p>
+  </div>
+  <div class="records-chart-actions">
+    <button type="button" class="cta-btn records-btn" onclick="downloadRecordsCsv()">Download records (CSV)</button>
+    <button type="button" class="cta-btn records-btn" onclick="generateAndDownloadHistoryChart()">Generate &amp; download history chart</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <header>
+    <div class="monster-badge">Powered by Monster Energy Protocol v2.0</div>
+    <h1>CAFFEINE<br>STRATEGIST</h1>
+    <p class="subtitle">// HALF-LIFE ALGORITHM ACTIVE // CIRCADIAN SYNC ENGINE //</p>
+  </header>
+
+  <div class="mode-toggle">
+    <button type="button" class="mode-btn active" id="btn-simulate" onclick="setMode('simulate')">Simulate</button>
+    <button type="button" class="mode-btn" id="btn-reverse" onclick="setMode('reverse')">Reverse Strategy</button>
+  </div>
+
+  <div id="panel-simulate" class="input-panel">
+    <div class="input-row input-row-three">
+      <div class="field-group">
+        <label>Intake Date</label>
+        <input type="date" id="intake-date">
+      </div>
+      <div class="field-group">
+        <label>Intake Time</label>
+        <input type="time" id="intake-time" value="22:00">
+      </div>
+      <div class="field-group">
+        <label>Body Weight</label>
+        <input type="number" id="weight" placeholder="60 kg" min="40" max="150" step="1">
+      </div>
+    </div>
+    <div class="field-group empty-stomach-row">
+      <label class="toggle-label">
+        <input type="checkbox" id="empty-stomach" checked>
+        <span>Empty stomach (faster absorption, peak ~15–45 min)</span>
+      </label>
+    </div>
+
+    <div class="input-row">
+      <div class="field-group">
+        <label>Drink</label>
+        <select id="drink-type" onchange="onDrinkTypeChange()">
+          <option value="monster">Monster Energy (160mg)</option>
+          <option value="redbull">Red Bull (80mg)</option>
+          <option value="high_caffeine">Celsius / Bang (200mg+)</option>
+          <option value="espresso_based">Latte / Cappuccino / Americano</option>
+          <option value="drip_coffee">Drip / Cold Brew</option>
+          <option value="tea">Black / Green / Matcha Tea</option>
+          <option value="preworkout">Pre-Workout Supplement</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Quantity</label>
+        <div class="can-counter">
+          <button class="can-btn" type="button" onclick="changeQuantity(-1)">−</button>
+          <div class="can-count" id="quantity-value">1</div>
+          <button class="can-btn" type="button" onclick="changeQuantity(1)">+</button>
+        </div>
+      </div>
+    </div>
+    <div class="quantity-row">
+      <span class="quantity-label">Total caffeine:</span>
+      <div class="monster-tag" id="drink-tag">
+        <span class="monster-claw" id="drink-icon">☠️</span>
+        <span id="drink-tag-text">Monster Energy (160mg) · 1 Can → 160 mg</span>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="generateStrategy()">⚡ GENERATE STRATEGY ⚡</button>
+  </div>
+
+  <div id="panel-reverse" class="panel-reverse">
+    <div class="input-row input-row-three">
+      <div class="field-group">
+        <label>I need to be highly focused at</label>
+        <input type="time" id="focus-time" value="01:00">
+      </div>
+      <div class="field-group">
+        <label>I need to be asleep by</label>
+        <input type="time" id="sleep-by-time" value="03:00">
+      </div>
+      <div class="field-group">
+        <label>Body Weight</label>
+        <input type="number" id="reverse-weight" placeholder="70 kg" min="40" max="150" step="1">
+      </div>
+    </div>
+    <button class="cta-btn" onclick="calculateReverseStrategy()">Calculate</button>
+    <div id="reverse-result" class="reverse-result" style="display: none;"></div>
+  </div>
+
+  <div id="output">
+
+    <div class="stats-row" id="stats-row"></div>
+
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <span class="chart-title">// CAFFEINE_CONCENTRATION_CURVE // 12HR PROJECTION //</span>
+        <span class="live-dot">SIMULATING</span>
+      </div>
+      <div id="chart"></div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgba(0,255,65,0.3); border:1px solid rgba(0,255,65,0.6);"></div>
+          PEAK FOCUS ZONE (>100mg)
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgba(255,45,85,0.3); border:1px solid rgba(255,45,85,0.6);"></div>
+          CRASH ZONE (sleep window + >30mg)
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgba(255,214,10,0.3); border:1px solid rgba(255,214,10,0.6);"></div>
+          SAFE CLEARANCE (<30mg)
+        </div>
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 16px;">
+      <button type="button" class="cta-btn" id="btn-download-card" style="max-width: 320px; margin: 0 auto;" onclick="downloadStrategyCard()">DOWNLOAD STRATEGY CARD</button>
+    </div>
+
+    <div class="verdict-panel">
+      <div id="verdict-text"></div>
+    </div>
+    <div id="strategy-topup" class="topup-panel"></div>
+
+    <div class="reminders-panel" id="reminders-panel">
+      <div id="reminders-content"></div>
+    </div>
+
+  </div>
+
+  <footer>
+    // DISCLAIMER: FOR EDUCATIONAL USE ONLY. CONSULT A PHYSICIAN FOR MEDICAL ADVICE. //
+    <br>// CAFFEINE STRATEGIST © 2026 — HACKATHON MVP BUILD //
+  </footer>
+
+  <div class="footer-qr">
+    <p class="qr-label">Scan to open this page</p>
+    <img id="qr-code" src="" alt="QR Code" width="120" height="120">
+    <p class="qr-hint">Host this page on a web server (e.g. GitHub Pages) so the QR link works for others.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const STORAGE_KEY = 'caffeine_strategist_history';
+const BIOLOGY_STORAGE_KEY = 'caffeine_strategist_biology';
+
+function getBiologicalSettings() {
+  var g = document.getElementById('bio-genes');
+  var t = document.getElementById('bio-tobacco');
+  var m = document.getElementById('bio-medication');
+  var h = document.getElementById('bio-habitual');
+  if (g && t && m && h) {
+    var habitual = parseInt(h.value, 10);
+    return {
+      genes: g.value || 'normal',
+      tobacco: t.value || 'no',
+      medication: m.value || 'no',
+      dailyHabitualMg: isNaN(habitual) || habitual < 0 ? 0 : habitual
+    };
+  }
+  try {
+    var raw = localStorage.getItem(BIOLOGY_STORAGE_KEY);
+    var o = raw ? JSON.parse(raw) : {};
+    return {
+      genes: o.genes || 'normal',
+      tobacco: o.tobacco || 'no',
+      medication: o.medication || 'no',
+      dailyHabitualMg: Math.max(0, parseInt(o.dailyHabitualMg, 10) || 0)
+    };
+  } catch (e) { return { genes: 'normal', tobacco: 'no', medication: 'no', dailyHabitualMg: 0 }; }
+}
+
+function saveBiologicalSettings() {
+  var o = {
+    genes: document.getElementById('bio-genes').value,
+    tobacco: document.getElementById('bio-tobacco').value,
+    medication: document.getElementById('bio-medication').value,
+    dailyHabitualMg: document.getElementById('bio-habitual').value ? parseInt(document.getElementById('bio-habitual').value, 10) : 0
+  };
+  localStorage.setItem(BIOLOGY_STORAGE_KEY, JSON.stringify(o));
+}
+
+function loadBiologicalSettings() {
+  var s = getBiologicalSettings();
+  var g = document.getElementById('bio-genes');
+  var t = document.getElementById('bio-tobacco');
+  var m = document.getElementById('bio-medication');
+  var h = document.getElementById('bio-habitual');
+  if (g) g.value = s.genes;
+  if (t) t.value = s.tobacco;
+  if (m) m.value = s.medication;
+  if (h) h.value = s.dailyHabitualMg || '';
+}
+
+function getHalfLifeAndPeak(weightKg, emptyStomach) {
+  var baseWeight = 70;
+  var weight = weightKg || 70;
+  var halfLife = 5 + (baseWeight - weight) * 0.02;
+  var bio = getBiologicalSettings();
+  if (bio.genes === 'fast') halfLife -= 1.2;
+  if (bio.genes === 'slow') halfLife += 1.5;
+  if (bio.tobacco === 'yes') halfLife -= 1;
+  if (bio.medication === 'yes') halfLife += 1.5;
+  halfLife = Math.max(2, Math.min(9, halfLife));
+  var peakOffsetHours = emptyStomach ? 0.4 : 0.75;
+  return { halfLife: halfLife, peakOffsetHours: peakOffsetHours };
+}
+
+function getFocusThreshold() {
+  var bio = getBiologicalSettings();
+  var habitual = bio.dailyHabitualMg || 0;
+  return 100 + Math.min(100, Math.floor(habitual / 4));
+}
+
+function getTypicalHalfLife(weightKg) {
+  var baseWeight = 70;
+  var weight = weightKg || 70;
+  return Math.max(2, Math.min(9, 5 + (baseWeight - weight) * 0.02));
+}
+
+function computeBaselineCurvePoints(intakeHour, intakeMin, weightKg, totalCaffeineMg) {
+  var totalCaffeine = totalCaffeineMg;
+  var baseWeight = 70;
+  var weight = weightKg || 70;
+  var weightFactor = baseWeight / weight;
+  var C_peak = Math.min(totalCaffeine * weightFactor * 0.85, totalCaffeine * 1.3);
+  var halfLife = getTypicalHalfLife(weightKg);
+  var peakOffsetHours = 0.75;
+  var intakeTotalMin = intakeHour * 60 + intakeMin;
+  var totalSteps = 12 * 4;
+  var points = [];
+  for (var i = 0; i <= totalSteps; i++) {
+    var offsetMin = i * 15;
+    var tHours = offsetMin / 60;
+    var concentration;
+    if (tHours <= peakOffsetHours) {
+      concentration = C_peak * (tHours / peakOffsetHours);
+    } else {
+      var tDecay = tHours - peakOffsetHours;
+      concentration = C_peak * Math.pow(0.5, tDecay / halfLife);
+    }
+    points.push(parseFloat(Math.max(0, concentration).toFixed(1)));
+  }
+  return points;
+}
+
+// ── Mode: Simulate vs Reverse Strategy ──
+function setMode(mode) {
+  var isSimulate = mode === 'simulate';
+  document.getElementById('btn-simulate').classList.toggle('active', isSimulate);
+  document.getElementById('btn-reverse').classList.toggle('active', !isSimulate);
+  document.getElementById('panel-simulate').classList.toggle('hidden', !isSimulate);
+  document.getElementById('panel-reverse').classList.toggle('visible', !isSimulate);
+  var outputEl = document.getElementById('output');
+  if (outputEl) outputEl.style.display = isSimulate ? '' : 'none';
+}
+
+function calculateReverseStrategy() {
+  var focusVal = document.getElementById('focus-time').value || '01:00';
+  var sleepVal = document.getElementById('sleep-by-time').value || '03:00';
+  var weightKg = parseFloat(document.getElementById('reverse-weight').value) || 70;
+  var [fh, fm] = focusVal.split(':').map(Number);
+  var [sh, sm] = sleepVal.split(':').map(Number);
+  var focusMin = fh * 60 + fm;
+  var sleepMin = sh * 60 + sm;
+  var peakOffsetMin = 45;
+  var intakeMin = focusMin - peakOffsetMin;
+  if (intakeMin < 0) intakeMin += 24 * 60;
+  var intakeHour = Math.floor(intakeMin / 60) % 24;
+  var intakeMinPart = intakeMin % 60;
+  var intakeTimeStr = String(intakeHour).padStart(2, '0') + ':' + String(intakeMinPart).padStart(2, '0');
+
+  var baseWeight = 70;
+  var weightFactor = baseWeight / weightKg;
+  var hl = getHalfLifeAndPeak(weightKg, true);
+  var halfLife = hl.halfLife;
+  var tFromIntakeToSleepMin = (sleepMin - intakeMin + 24 * 60) % (24 * 60);
+  var tFromIntakeToSleepH = tFromIntakeToSleepMin / 60;
+  if (tFromIntakeToSleepH < 0.75) {
+    document.getElementById('reverse-result').style.display = 'block';
+    document.getElementById('reverse-result').innerHTML = '<div class="label">RESULT</div><p>Your sleep time is too soon after your target focus time. Leave at least 1–2 hours between peak focus and bedtime so caffeine can clear.</p>';
+    return;
+  }
+  var decayH = tFromIntakeToSleepH - 0.75;
+  var C_peakMax = 30 / Math.pow(0.5, decayH / halfLife);
+  var totalCaffeineMax = C_peakMax / (weightFactor * 0.85);
+  totalCaffeineMax = Math.min(totalCaffeineMax, 400);
+  var suggested = [];
+  var order = ['monster', 'redbull', 'espresso_based', 'high_caffeine', 'tea', 'drip_coffee', 'preworkout'];
+  order.forEach(function(key) {
+    var d = drinkDatabase[key];
+    if (!d) return;
+    var per = d.baseCaffeine;
+    var n = Math.floor(totalCaffeineMax / per);
+    if (n >= 1) suggested.push({ key: key, name: d.name, count: n, mg: n * per, icon: d.icon });
+  });
+  suggested.sort(function(a, b) { return b.mg - a.mg; });
+  var top = suggested.slice(0, 4);
+  var lines = [];
+  lines.push('<div class="label">RECOMMENDED INTAKE</div>');
+  lines.push('<p>To be <strong>highly focused around ' + focusVal + '</strong> and <strong>asleep by ' + sleepVal + '</strong>, drink at:</p>');
+  lines.push('<p><strong>' + intakeTimeStr + '</strong></p>');
+  lines.push('<p>Suggested options (max ~' + Math.round(totalCaffeineMax) + ' mg):</p><ul style="margin: 12px 0 0 20px;">');
+  if (top.length === 0) {
+    lines.push('<li>Only very low caffeine fits this window. Try 1 cup tea (40 mg) or half a Red Bull if you need a small boost.</li>');
+  } else {
+    top.forEach(function(s) {
+      var unit = s.count === 1 ? (drinkDatabase[s.key].unitLabel.replace(/s$/, '')) : drinkDatabase[s.key].unitLabel;
+      lines.push('<li>' + s.icon + ' ' + s.name + ' &middot; ' + s.count + ' ' + unit + ' (' + s.mg + ' mg)</li>');
+    });
+  }
+  lines.push('</ul>');
+  document.getElementById('reverse-result').style.display = 'block';
+  document.getElementById('reverse-result').innerHTML = lines.join('');
+}
+
+function downloadStrategyCard() {
+  var el = document.getElementById('output');
+  if (!el || typeof html2canvas !== 'function') {
+    alert('Download requires html2canvas. Check your connection.');
+    return;
+  }
+  html2canvas(el, { backgroundColor: '#000', scale: 2, useCORS: true }).then(function(canvas) {
+    var link = document.createElement('a');
+    link.download = 'caffeine-strategy-card.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+}
+
+// Drink database: 7 categories with correct caffeine logic (energy drinks split by tier, coffee by shot/oz, tea, pre-workout)
+const drinkDatabase = {
+  monster: {
+    name: "Monster Energy (160mg)",
+    baseCaffeine: 160,
+    unitLabel: "Cans",
+    icon: "☠️",
+    step: 1,
+    max: 5
+  },
+  redbull: {
+    name: "Red Bull (80mg)",
+    baseCaffeine: 80,
+    unitLabel: "Cans",
+    icon: "🐂",
+    step: 1,
+    max: 8
+  },
+  high_caffeine: {
+    name: "Celsius / Bang (200mg+)",
+    baseCaffeine: 200,
+    unitLabel: "Cans",
+    icon: "🔥",
+    step: 1,
+    max: 4
+  },
+  espresso_based: {
+    name: "Latte / Cappuccino / Americano",
+    baseCaffeine: 75,
+    unitLabel: "Espresso Shots",
+    icon: "☕",
+    step: 1,
+    max: 6
+  },
+  drip_coffee: {
+    name: "Drip / Cold Brew",
+    baseCaffeine: 18,
+    unitLabel: "oz (Ounces)",
+    icon: "🫘",
+    step: 4,
+    max: 24
+  },
+  tea: {
+    name: "Black / Green / Matcha Tea",
+    baseCaffeine: 40,
+    unitLabel: "Cups (8oz)",
+    icon: "🍵",
+    step: 1,
+    max: 8
+  },
+  preworkout: {
+    name: "Pre-Workout Supplement",
+    baseCaffeine: 200,
+    unitLabel: "Scoops",
+    icon: "💪",
+    step: 0.5,
+    max: 3
+  }
+};
+
+let drinkQuantity = 1;
+
+function getCurrentDrink() {
+  const key = document.getElementById('drink-type').value;
+  return drinkDatabase[key] || drinkDatabase.monster;
+}
+
+function roundToStep(value, step) {
+  if (step <= 0) return value;
+  return Math.round(value / step) * step;
+}
+
+function onDrinkTypeChange() {
+  const drink = getCurrentDrink();
+  drinkQuantity = drink.step;
+  drinkQuantity = Math.min(drinkQuantity, drink.max);
+  drinkQuantity = roundToStep(drinkQuantity, drink.step);
+  updateQuantityDisplay();
+  var iconEl = document.getElementById('drink-icon');
+  if (iconEl) iconEl.textContent = drink.icon;
+  updateDrinkTag();
+}
+
+function changeQuantity(delta) {
+  const drink = getCurrentDrink();
+  const step = drink.step;
+  const max = drink.max;
+  const min = step;
+  let next = drinkQuantity + delta * step;
+  next = Math.max(min, Math.min(max, next));
+  drinkQuantity = roundToStep(next, step);
+  drinkQuantity = Math.max(min, Math.min(max, drinkQuantity));
+  updateQuantityDisplay();
+  updateDrinkTag();
+}
+
+function updateQuantityDisplay() {
+  const el = document.getElementById('quantity-value');
+  if (!el) return;
+  el.textContent = drinkQuantity % 1 === 0 ? drinkQuantity : drinkQuantity.toFixed(1);
+}
+
+function updateDrinkTag() {
+  const tagText = document.getElementById('drink-tag-text');
+  const total = computeTotalCaffeineFromSelection();
+  const desc = getDrinkDescription();
+  if (tagText) tagText.innerHTML = desc + ' &rarr; <span class="hi-mg">' + total + ' mg</span>';
+}
+
+function getDrinkDescription() {
+  const drink = getCurrentDrink();
+  let unit = drink.unitLabel;
+  const qty = drinkQuantity;
+  if (qty === 1 && /s$/.test(unit) && !unit.includes('(')) unit = unit.slice(0, -1);
+  return drink.name + ' &middot; ' + (qty % 1 ? qty.toFixed(1) : qty) + ' ' + unit;
+}
+
+function computeTotalCaffeineFromSelection() {
+  const drink = getCurrentDrink();
+  return Math.round(drinkQuantity * drink.baseCaffeine);
+}
+
+function setDefaultIntakeDate() {
+  var el = document.getElementById('intake-date');
+  if (!el) return;
+  var d = new Date();
+  el.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setDefaultIntakeDate();
+  onDrinkTypeChange();
+  loadBiologicalSettings();
+});
+
+// Sidebar
+function openSidebar() {
+  document.getElementById('sidebar-overlay').classList.add('open');
+  document.getElementById('sidebar').classList.add('open');
+  renderSidebar();
+}
+function closeSidebar() {
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function openHowTo() {
+  document.getElementById('overlay-howto').classList.add('open');
+  document.getElementById('panel-howto').style.display = 'block';
+}
+function closeHowTo() {
+  document.getElementById('overlay-howto').classList.remove('open');
+  document.getElementById('panel-howto').style.display = 'none';
+}
+
+function openWatch() {
+  document.getElementById('overlay-watch').classList.add('open');
+  document.getElementById('panel-watch').style.display = 'block';
+}
+function closeWatch() {
+  document.getElementById('overlay-watch').classList.remove('open');
+  document.getElementById('panel-watch').style.display = 'none';
+}
+
+function getHistory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+function saveRecord(record) {
+  const list = getHistory();
+  list.unshift(record);
+  const trimmed = list.slice(0, 100);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+}
+
+function getWeekMonthYearTotals(history) {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0,0,0,0);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  let week = 0, month = 0, year = 0;
+  history.forEach(r => {
+    const d = new Date(r.date);
+    if (d >= weekStart) week += r.totalMg;
+    if (d >= monthStart) month += r.totalMg;
+    if (d >= yearStart) year += r.totalMg;
+  });
+  return { week, month, year };
+}
+
+// Health thresholds (caffeine mg)
+const THRESHOLDS = {
+  dailySafe: 400,
+  dailyWarn: 600,
+  dailyDanger: 800,
+  weeklyWarn: 2800,
+  monthlyWarn: 12000,
+  singleDanger: 200
+};
+
+function getAdvice(week, month, year, recentDailyMax) {
+  const recent = recentDailyMax || 0;
+  let lines = [];
+  if (recent <= 0 && week <= 0) {
+    lines.push('<span class="safe">No intake data yet. Records appear here after you generate a strategy.</span>');
+    lines.push('<div class="threshold-title">Reference thresholds (caffeine mg)</div>');
+    lines.push('· Daily &lt;400mg: generally safe<br>· Daily 400–600mg: watch sleep &amp; anxiety<br>· Daily &gt;600mg: unhealthy, higher risk of palpitations &amp; insomnia<br>· Daily &gt;800mg: dangerous, may cause serious discomfort');
+    return lines.join('');
+  }
+  if (recent > THRESHOLDS.dailyDanger) {
+    lines.push('<span class="danger">⚠ Daily intake too high (&gt;800mg)</span> Cardiovascular and sleep risks. Reduce intake and consult a physician.');
+  } else if (recent > THRESHOLDS.dailyWarn) {
+    lines.push('<span class="danger">⚠ Daily intake high (&gt;600mg)</span> May cause insomnia, anxiety, palpitations. Aim for under 400mg.');
+  } else if (recent > THRESHOLDS.dailySafe) {
+    lines.push('<span class="warn">Note: daily over 400mg</span> May affect sleep in some people. Consider reducing tomorrow.');
+  } else if (recent > 0) {
+    lines.push('<span class="safe">✓ Daily amount in common safe range (≤400mg)</span> Keep a regular schedule when possible.');
+  }
+  if (week > THRESHOLDS.weeklyWarn) {
+    lines.push('<span class="warn">Weekly total high</span> Long-term high doses increase tolerance and dependence. Consider tapering.');
+  }
+  if (month > THRESHOLDS.monthlyWarn) {
+    lines.push('<span class="warn">Monthly total high</span> Pay attention to body signals; rest and reduce intake when needed.');
+  }
+  var bio = getBiologicalSettings();
+  var typicalH = getTypicalHalfLife(70);
+  var yourH = getHalfLifeAndPeak(70, true).halfLife;
+  if (bio.medication === 'yes' || bio.genes !== 'normal' || bio.tobacco === 'yes') {
+    lines.push('<div class="threshold-title">Metabolism (from your settings)</div>');
+    lines.push('Your half-life: <strong>' + yourH.toFixed(1) + ' h</strong>. Typical: ' + typicalH.toFixed(1) + ' h. ');
+    if (bio.medication === 'yes') lines.push('Medication slows clearance — same intake may affect sleep longer.');
+    else if (bio.tobacco === 'yes') lines.push('Tobacco speeds clearance.');
+    lines.push('<br>');
+  }
+  lines.push('<div class="threshold-title">Reference thresholds (caffeine mg)</div>');
+  lines.push('· &lt;400: safe · 400–600: caution · &gt;600: unhealthy · &gt;800: dangerous');
+  return lines.join('<br>');
+}
+
+function renderSidebar() {
+  const history = getHistory();
+  const { week, month, year } = getWeekMonthYearTotals(history);
+  const todayStr = new Date().toDateString();
+  const todayTotal = history.filter(r => new Date(r.date).toDateString() === todayStr).reduce((s, r) => s + r.totalMg, 0);
+  var adviceEl = document.getElementById('advice-panel');
+  if (adviceEl) adviceEl.innerHTML = getAdvice(week, month, year, todayTotal);
+}
+
+function openRecords() {
+  document.getElementById('overlay-records').classList.add('open');
+  document.getElementById('panel-records').style.display = 'block';
+  renderRecordsModal();
+}
+function closeRecords() {
+  document.getElementById('overlay-records').classList.remove('open');
+  document.getElementById('panel-records').style.display = 'none';
+}
+
+function renderRecordsModal() {
+  var history = getHistory();
+  var listEl = document.getElementById('records-list');
+  var emptyEl = document.getElementById('records-empty');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  var show = history.slice(0, 50);
+  if (show.length === 0) {
+    if (emptyEl) emptyEl.style.display = 'block';
+  } else {
+    if (emptyEl) emptyEl.style.display = 'none';
+    show.forEach(function(r, idx) {
+      var li = document.createElement('li');
+      li.className = 'history-item';
+      var d = new Date(r.date);
+      var dateStr = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+      var timeStr = r.time || '—';
+      var desc = r.drinkDesc || (r.cans != null ? r.cans + ' can(s)' : '');
+      li.innerHTML = '<span class="hi-date">Record ' + (show.length - idx) + ' · ' + dateStr + ' ' + timeStr + '</span><br><span class="hi-mg">' + r.totalMg + ' mg</span>' + (desc ? ' · ' + desc : '');
+      listEl.appendChild(li);
+    });
+  }
+  var totals = getWeekMonthYearTotals(history);
+  var w = document.getElementById('records-stat-week');
+  var m = document.getElementById('records-stat-month');
+  var y = document.getElementById('records-stat-year');
+  if (w) w.textContent = totals.week;
+  if (m) m.textContent = totals.month;
+  if (y) y.textContent = totals.year;
+}
+
+function downloadRecordsCsv() {
+  var history = getHistory();
+  if (history.length === 0) {
+    alert('No records yet. Please generate a strategy first.');
+    return;
+  }
+  var csvContent = 'data:text/csv;charset=utf-8,Date,Time,Caffeine(mg),Description\n';
+  history.forEach(function(r) {
+    var row = new Date(r.date).toLocaleDateString() + ',' + (r.time || '') + ',' + r.totalMg + ',"' + (r.drinkDesc || '').replace(/"/g, '""') + '"';
+    csvContent += row + '\n';
+  });
+  var encodedUri = encodeURI(csvContent);
+  var link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', 'Caffeine_Log_' + new Date().toISOString().split('T')[0] + '.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function generateAndDownloadHistoryChart() {
+  var history = getHistory();
+  if (history.length < 2) {
+    alert('Need at least 2 records to generate a trend chart.');
+    return;
+  }
+  var tempContainer = document.createElement('div');
+  tempContainer.style.width = '800px';
+  tempContainer.style.height = '400px';
+  tempContainer.style.position = 'fixed';
+  tempContainer.style.top = '0';
+  tempContainer.style.left = '-1000px';
+  document.body.appendChild(tempContainer);
+
+  var historyChart = echarts.init(tempContainer, null, { renderer: 'canvas' });
+  var data = history.slice(0, 15).reverse();
+
+  historyChart.setOption({
+    backgroundColor: '#070d07',
+    title: {
+      text: 'CAFFEINE INTAKE TREND',
+      textStyle: { color: '#00FF41', fontFamily: 'Bebas Neue' },
+      left: 'center',
+      top: 10
+    },
+    grid: { left: 60, right: 40, top: 50, bottom: 60 },
+    xAxis: {
+      type: 'category',
+      data: data.map(function(r) { return new Date(r.date).toLocaleDateString(); }),
+      axisLabel: { color: '#4a7a50', fontFamily: 'Share Tech Mono', fontSize: 10 }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#4a7a50' },
+      splitLine: { lineStyle: { color: '#1a1a1a' } }
+    },
+    series: [{
+      data: data.map(function(r) { return r.totalMg; }),
+      type: 'bar',
+      itemStyle: { color: '#00FF41' },
+      label: { show: true, position: 'top', color: '#00FF41', fontFamily: 'Share Tech Mono' }
+    }]
+  });
+
+  setTimeout(function() {
+    try {
+      var imgData = historyChart.getDataURL({
+        type: 'png',
+        pixelRatio: 2,
+        backgroundColor: '#070d07'
+      });
+      var link = document.createElement('a');
+      link.href = imgData;
+      link.download = 'Caffeine_Trend_Analysis.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      historyChart.dispose();
+      if (tempContainer.parentNode) document.body.removeChild(tempContainer);
+    }
+  }, 500);
+}
+
+// ── CORE ALGORITHM ──
+function computeCurve(intakeHour, intakeMin, weightKg, totalCaffeineMg, options) {
+  options = options || {};
+  const totalCaffeine = totalCaffeineMg;
+  const baseWeight = 70;
+  const weight = weightKg || 70;
+  const weightFactor = baseWeight / weight;
+  const C_peak = Math.min(totalCaffeine * weightFactor * 0.85, totalCaffeine * 1.3);
+
+  const emptyStomach = options.emptyStomach !== false;
+  const hl = getHalfLifeAndPeak(weightKg, emptyStomach);
+  const halfLife = hl.halfLife;
+  const peakOffsetHours = hl.peakOffsetHours;
+
+  const points = [];
+  const timeLabels = [];
+  const totalSteps = 12 * 4;
+  const intakeTotalMin = intakeHour * 60 + intakeMin;
+
+  for (let i = 0; i <= totalSteps; i++) {
+    const offsetMin = i * 15;
+    const currentTotalMin = intakeTotalMin + offsetMin;
+    const currentHour = Math.floor(currentTotalMin / 60) % 24;
+    const currentMin = currentTotalMin % 60;
+    const tHours = offsetMin / 60;
+    let concentration;
+    if (tHours <= peakOffsetHours) {
+      concentration = C_peak * (tHours / peakOffsetHours);
+    } else {
+      const tDecay = tHours - peakOffsetHours;
+      concentration = C_peak * Math.pow(0.5, tDecay / halfLife);
+    }
+    concentration = Math.max(0, concentration);
+    const label = `${String(currentHour).padStart(2,'0')}:${String(currentMin).padStart(2,'0')}`;
+    timeLabels.push(label);
+    points.push(parseFloat(concentration.toFixed(1)));
+  }
+
+  return { points, timeLabels, C_peak, halfLife, intakeTotalMin };
+}
+
+function getPhaseInfo(concentration, timeLabel) {
+  const hour = parseInt(timeLabel.split(':')[0]);
+  const isSleepWindow = hour >= 23 || hour < 7;
+  return {
+    isPeak: concentration > 100,
+    isCrash: isSleepWindow && concentration > 30,
+    isSafe: concentration < 30,
+  };
+}
+
+function buildRemindersHTML(toughestTime, sleepiestTime, crashMid, hasSleepRisk) {
+  var html = '';
+  if (toughestTime) {
+    html += '<div class="reminder-block">';
+    html += '<div class="reminder-label">TOUGHEST MOMENT — jittery or crashing</div>';
+    html += '<div class="reminder-time">Around ' + toughestTime + '</div>';
+    html += '<div class="reminder-tips">';
+    html += '<span class="tip">Get up and move</span> · Stretch or short walk · ';
+    html += 'Drink water · <span class="tip">Avoid more caffeine</span>. ';
+    html += 'This is when blood caffeine is dropping fast; moving helps.</div>';
+    html += '</div>';
+  }
+  if (sleepiestTime) {
+    html += '<div class="reminder-block">';
+    html += '<div class="reminder-label">LIKELY SLEEPIEST — caffeine clearing</div>';
+    html += '<div class="reminder-time">Around ' + sleepiestTime + '</div>';
+    html += '<div class="reminder-tips">';
+    html += 'Short walk · Cold water · A 10‑min rest or nap if you can. ';
+    html += 'Ease back into work; no heavy decisions right after.</div>';
+    html += '</div>';
+  }
+  if (hasSleepRisk && crashMid) {
+    html += '<div class="reminder-block">';
+    html += '<div class="reminder-label">TIRED BUT WIRED (sleep window, caffeine still high)</div>';
+    html += '<div class="reminder-time">' + crashMid[0] + ' – ' + crashMid[1] + '</div>';
+    html += '<div class="reminder-tips">';
+    html += 'Dim lights · Get up and move briefly · No more caffeine. ';
+    html += 'Stretching or breathing can ease the mismatch.</div>';
+    html += '</div>';
+  }
+  if (!html) html = '<div class="reminder-tips">No specific reminders for this curve. Stay hydrated and move when you can.</div>';
+  return html;
+}
+
+function generateStrategy() {
+  saveBiologicalSettings();
+  const dateVal = document.getElementById('intake-date').value;
+  const timeVal = document.getElementById('intake-time').value || '22:00';
+  const [ih, im] = timeVal.split(':').map(Number);
+  const weightVal = parseFloat(document.getElementById('weight').value) || 70;
+  const totalMg = computeTotalCaffeineFromSelection();
+  const drinkDesc = getDrinkDescription();
+
+  var recordDate = new Date();
+  if (dateVal) recordDate = new Date(dateVal + 'T' + timeVal + ':00');
+
+  saveRecord({
+    date: recordDate.toISOString(),
+    time: timeVal,
+    totalMg: totalMg,
+    weight: weightVal,
+    drinkDesc: drinkDesc
+  });
+
+  const emptyStomach = document.getElementById('empty-stomach').checked;
+  const { points, timeLabels, C_peak, halfLife, intakeTotalMin } = computeCurve(ih, im, weightVal, totalMg, { emptyStomach: emptyStomach });
+  const focusThreshold = getFocusThreshold();
+  const bio = getBiologicalSettings();
+  const typicalHalfLife = getTypicalHalfLife(weightVal);
+  const baselinePoints = computeBaselineCurvePoints(ih, im, weightVal, totalMg);
+
+  const peakIdx = points.indexOf(Math.max(...points));
+  const peakTime = timeLabels[peakIdx];
+  const peakVal = points[peakIdx];
+
+  let clearTime = null;
+  for (let i = peakIdx; i < points.length; i++) {
+    if (points[i] < 30) {
+      clearTime = timeLabels[i];
+      break;
+    }
+  }
+
+  const sleepWarningHour = 2; 
+  let hasSleepRisk = false;
+  for (let i = 0; i < timeLabels.length; i++) {
+    const h = parseInt(timeLabels[i].split(':')[0]);
+    if ((h >= 23 || h < sleepWarningHour) && points[i] > 30) {
+      hasSleepRisk = true;
+      break;
+    }
+  }
+
+  const focusAreas = [];
+  const crashAreas = [];
+
+  let inFocus = false, focusStart = null;
+  let inCrash = false, crashStart = null;
+
+  for (let i = 0; i < timeLabels.length; i++) {
+    const h = parseInt(timeLabels[i].split(':')[0]);
+    const isSleepW = h >= 23 || h < 7;
+    const isPeakZ = points[i] > focusThreshold;
+    const isCrashZ = isSleepW && points[i] > 30;
+
+    if (isPeakZ && !inFocus) { inFocus = true; focusStart = timeLabels[i]; }
+    if (!isPeakZ && inFocus) {
+      inFocus = false;
+      focusAreas.push([focusStart, timeLabels[i]]);
+    }
+
+    if (isCrashZ && !inCrash) { inCrash = true; crashStart = timeLabels[i]; }
+    if (!isCrashZ && inCrash) {
+      inCrash = false;
+      crashAreas.push([crashStart, timeLabels[i]]);
+    }
+  }
+  if (inFocus) focusAreas.push([focusStart, timeLabels[timeLabels.length-1]]);
+  if (inCrash) crashAreas.push([crashStart, timeLabels[timeLabels.length-1]]);
+
+  // Toughest moment: biggest drop in concentration (crash feeling) ~1–5h after peak
+  let toughestIdx = peakIdx;
+  let maxDrop = 0;
+  const endSearch = Math.min(peakIdx + 20, points.length - 1);
+  for (let i = peakIdx + 2; i <= endSearch; i++) {
+    const drop = points[i - 1] - points[i];
+    if (drop > maxDrop) { maxDrop = drop; toughestIdx = i; }
+  }
+  const toughestTime = timeLabels[toughestIdx];
+  const crashMid = crashAreas.length > 0 ? crashAreas[0] : null;
+
+  // Sleepiest moment: when caffeine clears (clearTime) or start of crash zone
+  const sleepiestTime = clearTime || (crashMid ? crashMid[0] : null);
+
+  const remindersHTML = buildRemindersHTML(
+    toughestTime,
+    sleepiestTime,
+    crashMid,
+    hasSleepRisk
+  );
+  document.getElementById('reminders-content').innerHTML = remindersHTML;
+
+  const markAreaData = [];
+  focusAreas.forEach(([s, e]) => markAreaData.push([
+    { xAxis: s, itemStyle: { color: 'rgba(0,255,65,0.08)', borderColor: 'rgba(0,255,65,0.3)' }, label: { show: false } },
+    { xAxis: e }
+  ]));
+  crashAreas.forEach(([s, e]) => markAreaData.push([
+    { xAxis: s, itemStyle: { color: 'rgba(255,45,85,0.1)', borderColor: 'rgba(255,45,85,0.3)' }, label: { show: false } },
+    { xAxis: e }
+  ]));
+
+  const markLineData = [
+    {
+      yAxis: focusThreshold,
+      lineStyle: { color: 'rgba(0,255,65,0.4)', type: 'dashed', width: 1 },
+      label: { show: true, formatter: 'PEAK ZONE (' + focusThreshold + 'mg)', color: '#00FF41', fontFamily: 'Share Tech Mono', fontSize: 10, position: 'insideEndTop' }
+    },
+    {
+      yAxis: 30,
+      lineStyle: { color: 'rgba(255,214,10,0.4)', type: 'dashed', width: 1 },
+      label: { show: true, formatter: 'SAFE LINE', color: '#FFD60A', fontFamily: 'Share Tech Mono', fontSize: 10, position: 'insideEndTop' }
+    }
+  ];
+  var nowDate = new Date();
+  var nowMin = (nowDate.getHours() * 60 + nowDate.getMinutes()) % (24 * 60);
+  var chartStartMin = intakeTotalMin % (24 * 60);
+  var chartEndMin = (intakeTotalMin + 12 * 60) % (24 * 60);
+  var nowInRange = chartEndMin > chartStartMin ? (nowMin >= chartStartMin && nowMin <= chartEndMin) : (nowMin >= chartStartMin || nowMin <= chartEndMin);
+  if (nowInRange) {
+    var bestIdx = 0;
+    var bestDist = 24 * 60;
+    for (var ii = 0; ii < timeLabels.length; ii++) {
+      var ptMin = (intakeTotalMin + ii * 15) % (24 * 60);
+      var d = Math.abs(ptMin - nowMin);
+      if (d > 12 * 60) d = 24 * 60 - d;
+      if (d < bestDist) { bestDist = d; bestIdx = ii; }
+    }
+    markLineData.push({
+      xAxis: timeLabels[bestIdx],
+      lineStyle: { color: 'rgba(255,255,255,0.7)', type: 'solid', width: 2 },
+      label: { show: true, formatter: 'NOW', color: '#fff', fontFamily: 'Share Tech Mono', fontSize: 10, position: 'insideEndTop' }
+    });
+  }
+  var mgPerKg = weightVal ? (C_peak / weightVal) : 0;
+  var jitterRisk = mgPerKg > 3;
+
+  // ==========================================
+  // ⚡ FIX: SHOW OUTPUT BEFORE RENDERING CHART
+  // ==========================================
+  const outputEl = document.getElementById('output');
+  outputEl.style.display = 'block';
+  outputEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // ── RENDER CHART ──
+  const chartDom = document.getElementById('chart');
+  
+  // ⚡ FIX: DISPOSE OLD INSTANCE BEFORE CREATING NEW ONE
+  let myChart = echarts.getInstanceByDom(chartDom);
+  if (myChart) {
+    myChart.dispose();
+  }
+  myChart = echarts.init(chartDom, null, { renderer: 'canvas' });
+
+  const option = {
+    backgroundColor: 'transparent',
+    legend: {
+      data: ['Your curve', 'Typical metabolism'],
+      top: 0,
+      textStyle: { color: 'rgba(0,255,65,0.8)', fontFamily: 'Share Tech Mono', fontSize: 10 }
+    },
+    grid: { top: 36, right: 30, bottom: 50, left: 60 },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(0,0,0,0.9)',
+      borderColor: 'rgba(0,255,65,0.4)',
+      borderWidth: 1,
+      textStyle: { color: '#00FF41', fontFamily: 'Share Tech Mono', fontSize: 12 },
+      formatter: function(params) {
+        var p0 = params[0];
+        var p1 = params[1];
+        var html = '<span style="font-family:Share Tech Mono;font-size:11px;color:#4a7a50;">' + p0.axisValue + '</span><br/><span style="color:#00FF41;">Your curve: ' + p0.value + ' mg</span>';
+        if (p1) html += '<br/><span style="color:rgba(150,150,150,0.9);">Typical: ' + p1.value + ' mg</span>';
+        return html;
+      }
+    },
+    xAxis: {
+      type: 'category',
+      data: timeLabels,
+      axisLine: { lineStyle: { color: 'rgba(0,255,65,0.2)' } },
+      axisLabel: {
+        color: 'rgba(0,255,65,0.5)',
+        fontFamily: 'Share Tech Mono',
+        fontSize: 10,
+        interval: 7,
+        rotate: 0,
+      },
+      splitLine: { show: false },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      name: 'mg',
+      nameTextStyle: { color: 'rgba(0,255,65,0.4)', fontFamily: 'Share Tech Mono', fontSize: 10 },
+      axisLine: { show: false },
+      axisLabel: { color: 'rgba(0,255,65,0.4)', fontFamily: 'Share Tech Mono', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(0,255,65,0.05)', type: 'dashed' } },
+      axisTick: { show: false }
+    },
+    series: [
+    {
+      name: 'Your curve',
+      data: points,
+      type: 'line',
+      smooth: true,
+      symbol: 'none',
+      lineStyle: {
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
+          colorStops: [
+            { offset: 0, color: '#00FF41' },
+            { offset: 0.5, color: '#00cc33' },
+            { offset: 1, color: '#FFD60A' }
+          ]
+        },
+        width: 3,
+        shadowColor: 'rgba(0,255,65,0.4)',
+        shadowBlur: 10
+      },
+      areaStyle: {
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(0,255,65,0.15)' },
+            { offset: 1, color: 'rgba(0,255,65,0.01)' }
+          ]
+        }
+      },
+      markArea: { silent: true, data: markAreaData },
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        data: markLineData
+      },
+      markPoint: {
+        data: [
+          {
+            coord: [timeLabels[peakIdx], points[peakIdx]],
+            name: 'PEAK',
+            symbol: 'circle',
+            symbolSize: 10,
+            itemStyle: { color: '#00FF41', borderColor: '#00FF41', borderWidth: 2 },
+            label: {
+              show: true,
+              formatter: '⚡ PEAK',
+              color: '#00FF41',
+              fontFamily: 'Share Tech Mono',
+              fontSize: 10,
+              position: 'top',
+              offset: [0, -5]
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: 'Typical metabolism',
+      data: baselinePoints,
+      type: 'line',
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { color: 'rgba(150,150,150,0.5)', type: 'dashed', width: 1 }
+    }
+    ]
+  };
+
+  myChart.setOption(option);
+  window.addEventListener('resize', () => myChart.resize());
+
+  // ── STATS ──
+  const statsHTML = `
+    <div class="stat-card">
+      <div class="stat-value" style="color: var(--green);">${Math.round(peakVal)}<span style="font-size:18px;"> mg</span></div>
+      <div class="stat-label">Peak Concentration</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: var(--yellow);">${peakTime}</div>
+      <div class="stat-label">Peak Focus Time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: ${hasSleepRisk ? 'var(--red)' : 'var(--green)'};">${clearTime || '12h+'}</div>
+      <div class="stat-label">Safe Clearance</div>
+    </div>
+  `;
+  document.getElementById('stats-row').innerHTML = statsHTML;
+
+  // ── VERDICT ──
+  let verdict = '';
+  verdict += `<span class="verdict-peak">⚡ PEAK FOCUS WINDOW → ${peakTime}</span>  |  Estimated peak blood caffeine level reaching <span class="verdict-peak">${Math.round(peakVal)}mg</span>, entering the Golden Focus Zone.\n\n`;
+
+  if (hasSleepRisk) {
+    verdict += `<span class="verdict-warning">⚠ SLEEP RISK DETECTED</span>  Caffeine concentration remains above the safe threshold (>30mg) during your sleep window.\n`;
+    verdict += `Action required: If you plan to sleep by <span class="verdict-warning">23:00</span>, cease intake before <span class="verdict-warning">${clearTime || '6 hours post-peak'}</span>.\n\n`;
+  } else {
+    verdict += `<span style="color:var(--green)">✓ SLEEP WINDOW CLEAR</span>  Caffeine concentration is projected to drop below the safe threshold during your sleep window. Circadian rhythm secured.\n\n`;
+  }
+
+  if (clearTime) {
+    verdict += `System projects caffeine will clear to safe levels (&lt;30mg) by <span class="verdict-safe">${clearTime}</span>.\n`;
+  }
+
+  if (jitterRisk) {
+    verdict += `\n<span class="verdict-warning">⚠ JITTER / ELEVATED HEART RATE RISK</span>  Peak concentration (${mgPerKg.toFixed(1)} mg/kg) is above 3 mg/kg. Consider reducing intake or spreading it out.\n`;
+  }
+
+  verdict += `\n<span style="color:var(--text-dim);font-size:12px;">// Your settings: half-life ${halfLife.toFixed(1)}h (genes/tobacco/medication) | Focus threshold: ${focusThreshold}mg (habitual) | Peak: ${Math.round(C_peak)}mg | Intake: ${totalMg}mg //</span>`;
+
+  verdict += '\n<div style="border-top:1px solid var(--border); margin-top:10px; padding-top:10px; font-size:12px; color:var(--text-dim);">';
+  verdict += '// Simulation parameters (from Personal Settings) //<br>';
+  verdict += 'Metabolism: <strong>' + bio.genes + '</strong> | Medication: ' + (bio.medication === 'yes' ? '<strong>detected (slower clearance)</strong>' : 'none') + ' | Tobacco: ' + (bio.tobacco === 'yes' ? '<strong>faster</strong>' : 'none') + '<br>';
+  verdict += '<strong>Current half-life: ' + halfLife.toFixed(1) + ' h</strong>' + (Math.abs(halfLife - typicalHalfLife) > 0.3 ? ' (typical would be ' + typicalHalfLife.toFixed(1) + ' h)' : '') + '</div>';
+
+  document.getElementById('verdict-text').innerHTML = verdict.replace(/\n/g, '<br>');
+
+  var topUpList = [
+    { time: peakTime, action: 'Peak focus window starts' },
+    { time: toughestTime, action: 'Toughest moment (consider movement, no more caffeine)' }
+  ];
+  if (clearTime) topUpList.push({ time: clearTime, action: 'Safe clearance (&lt;30mg)' });
+  var topUpHTML = '<div class="topup-schedule"><div class="topup-title">TOP-UP & CHECKPOINTS</div><ul class="topup-list">';
+  topUpList.forEach(function(item) {
+    topUpHTML += '<li><span class="topup-time">' + item.time + '</span> ' + item.action + '</li>';
+  });
+  topUpHTML += '</ul></div>';
+  var topUpEl = document.getElementById('strategy-topup');
+  if (topUpEl) topUpEl.innerHTML = topUpHTML;
+}
+
+// QR code: generate in-browser so it always shows and scans correctly when page is hosted
+(function() {
+  var el = document.getElementById('qr-code');
+  if (!el) return;
+  var url = window.location.href;
+  if (typeof QRCode !== 'undefined' && QRCode.toDataURL) {
+    QRCode.toDataURL(url, { width: 120, margin: 1 }).then(function(dataUrl) {
+      el.src = dataUrl;
+    }).catch(function() {
+      el.alt = 'QR unavailable';
+    });
+  } else {
+    el.src = 'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + encodeURIComponent(url);
+  }
+})();
+</script>
+</body>
+</html>
